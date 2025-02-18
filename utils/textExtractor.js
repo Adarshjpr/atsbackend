@@ -28,6 +28,9 @@ export const calculateATSScore = (resumeText, jobDescription) => {
     const matchPercentage = (matchingWords.length / jobWords.length) * 100;
 
     console.log("🔥 [FINAL ATS SCORE]:", matchPercentage.toFixed(2));
+ const scaledScore = Math.min(85 + Math.random() * 5, matchPercentage * 0.9);
 
-    return Math.round(matchPercentage);
+    console.log("🎯 [SCALED ATS SCORE]:", scaledScore.toFixed(2));
+
+    return Math.round(scaledScore);
 };
