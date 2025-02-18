@@ -25,7 +25,7 @@ export const calculateATSScore = (resumeText, jobDescription) => {
     console.log("✅ [MATCHING WORD COUNT]:", matchingWords.length);
     console.log("✅ [MATCHING WORDS - FIRST 50]:", matchingWords.slice(0, 50));
 
-    const matchPercentage = (matchingWords.length / jobWords.length) * 90;
+    const matchPercentage = (matchingWords.length / jobWords.length) * 100;
 
     console.log("🔥 [FINAL ATS SCORE]:", matchPercentage.toFixed(2));
 
