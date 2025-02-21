@@ -141,8 +141,6 @@
 // });
 
 // export default router;
-
-
 import express from "express";
 import multer from "multer";
 import dotenv from "dotenv";
@@ -170,25 +168,15 @@ const analyzeResume = async (text) => {
             parts: [
               {
                 text: `
-                  Act as an ATS resume checker. Analyze the following resume and provide structured output:
+Analyze this resume and provide the following structured data:
+1. **ATS Score (out of 100)**
+2. **Strengths** (Provide a list)
+3. **Weaknesses** (Provide a list)
+4. **Missing Keywords** (Provide a list)
+5. **Improvement Areas** (Provide bullet points)
 
-                  **[ATS Score]**
-                  - ATS Score (out of 100): Provide a score based on keyword match, formatting, and readability.
-
-                  **[Missing Keywords]**
-                  - Identify the industry-relevant keywords that are missing.
-
-                  **[Resume Strengths]**
-                  - What are the strongest points of this resume?
-
-                  **[Resume Weaknesses]**
-                  - Highlight areas where the resume is lacking.
-
-                  **[Improvement Areas]**
-                  - Give specific improvements for better ATS compatibility.
-
-                  Resume Text:
-                  ${text}
+Resume Text:
+${text}
                 `
               }
             ]
@@ -198,51 +186,74 @@ const analyzeResume = async (text) => {
     });
 
     const data = await response.json();
-    console.log("Complete API Response:", JSON.stringify(data, null, 2));
+    console.log("API Response:", JSON.stringify(data, null, 2));
 
-    // Extracting content from response
-    const contentText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No content available";
+    const contentText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI";
 
-    // Helper function to limit words
-    const limitWords = (text, wordLimit) => {
-      const words = text.split(" ");
-      if (words.length > wordLimit) {
-        return words.slice(0, wordLimit).join(" ") + "...";
-      }
-      return text;
-    };
+    // 🔥 Function to clean and extract data
+    const cleanText = (text) => text.replace(/\*\*/g, "").trim();
+    console.log("AI Response Text content text :", contentText);
 
-    // **Updated Regex Matching**
-    const atsScoreMatch = contentText.match(/ATS Score \(out of 100\):\s*(\d{1,3})/);
-    const missingKeywordsMatch = contentText.match(/Missing Keywords:\s*([\s\S]*?)(?=\*\*|$)/);
-    const strengthsMatch = contentText.match(/Resume Strengths:\s*([\s\S]*?)(?=\*\*|$)/);
-    const weaknessesMatch = contentText.match(/Resume Weaknesses:\s*([\s\S]*?)(?=\*\*|$)/);
-    const improvementMatch = contentText.match(/Improvement Areas:\s*([\s\S]*?)(?=\*\*|$)/);
-
-    // Extract Data
+    // Extract ATS Score
+    const atsScoreMatch = contentText.match(/\*\*1\. ATS Score \(out of 100\):\*\*\s*(\d{1,3})/);
     const atsScore = atsScoreMatch ? atsScoreMatch[1].trim() : "Not available";
-    const missingKeywords = missingKeywordsMatch ? missingKeywordsMatch[1].trim() : "No missing keywords identified";
-    const strengths = strengthsMatch ? strengthsMatch[1].trim() : "No strengths identified";
-    const weaknesses = weaknessesMatch ? weaknessesMatch[1].trim() : "No weaknesses identified";
-    const improvementSuggestions = improvementMatch ? improvementMatch[1].trim() : "No suggestions available";
 
-    // **Formatted Response**
-    const formattedResponse = {
-      ATS_Score: limitWords(atsScore, 50),
-      Missing_Keywords: missingKeywords,
+    console.log("Extracted ATS Score:", atsScore);
+
+    
+    
+
+    // Extract Strengths
+    const strengthsMatch = contentText.match(/2\. Strengths:\s*([\s\S]*?)(?=\n\n\*\*3|$)/);
+    const strengths = strengthsMatch
+      ? strengthsMatch[1]
+          .split("\n")
+          .map((s) => cleanText(s.replace(/\* /g, "")))
+          .filter((s) => s)
+      : ["No strengths found"];
+
+    // Extract Weaknesses
+    const weaknessesMatch = contentText.match(/3\. Weaknesses:\s*([\s\S]*?)(?=\n\n\*\*4|$)/);
+    const weaknesses = weaknessesMatch
+      ? weaknessesMatch[1]
+          .split("\n")
+          .map((w) => cleanText(w.replace(/\* /g, "")))
+          .filter((w) => w)
+      : ["No weaknesses found"];
+
+    // Extract Missing Keywords
+    const missingKeywordsMatch = contentText.match(/4\. Missing Keywords:\s*([\s\S]*?)(?=\n\n\*\*5|$)/);
+    const missingKeywords = missingKeywordsMatch
+      ? missingKeywordsMatch[1]
+          .split("\n")
+          .map((k) => cleanText(k.replace(/\* /g, "")))
+          .filter((k) => k)
+      : ["No missing keywords identified"];
+
+    // Extract Improvement Areas
+    const improvementAreasMatch = contentText.match(/5\. Improvement Areas:\s*([\s\S]*?)(?=$)/);
+    const improvementAreas = improvementAreasMatch
+      ? improvementAreasMatch[1]
+          .split("\n")
+          .map((imp) => cleanText(imp.replace(/\* /g, "")))
+          .filter((imp) => imp)
+      : ["No improvement suggestions"];
+
+    return {
+      ATS_Score: atsScore,
       Resume_Strengths: strengths,
       Resume_Weaknesses: weaknesses,
-      Improvement_Areas: limitWords(improvementSuggestions, 50),
+      Missing_Keywords: missingKeywords,
+      Improvement_Areas: improvementAreas,
     };
-
-    console.log("Formatted Response:", formattedResponse);
-
-    return formattedResponse;
   } catch (error) {
     console.error("Error analyzing resume:", error);
     return { Error: "Error analyzing resume." };
   }
 };
+
+
+
 
 
 // Main route to handle resume upload and analysis
@@ -276,3 +287,4 @@ router.post("/", upload.single("resume"), async (req, res) => {
 });
 
 export default router;
+
